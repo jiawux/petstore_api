@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify
-from flask_restful import Resource, Api, reqparse
+from flask_restful import Resource
+from flask_restful.reqparse import RequestParser
 
 app = Flask(__name__)
-api = Api(app)
 
-#pets json
+#fake pet data
 pets = [
     {
           "id": 1,
@@ -62,28 +62,29 @@ pets = [
         }
 ]
 
-petid = 3
-
-
-#create pet
+#create pet model
 class Pet(Resource):
 
     # endpoint to add a new pet
     @app.route("/pet", methods=["POST"])
     def add_pet():
-        parser = reqparse.RequestParser()
-        parser.add_argument("name")
-        parser.add_argument("photoUrls")
-        parser.add_argument("status")
+        parser = RequestParser()
+        parser.add_argument("name", type=str, required=True)
+        parser.add_argument("id", type=int, required = True)
+        parser.add_argument("photoUrls", required=True)
+        parser.add_argument("status", type=str, required=True)
         args = parser.parse_args()
-        global petid
-        petid += 1
+
+        #if id isn't unique
+        for pet in pets:
+            if (pet["id"] == args["id"]):
+                return "invalid input", 405
 
         pet = {
             "name": args["name"],
-            "id": petid,
+            "id": args["id"],
             "category": {
-              "id": petid,
+              "id": args["id"],
               "name": args["name"]
             },
             "name": args["name"],
@@ -92,7 +93,7 @@ class Pet(Resource):
             ],
             "tags": [
               {
-                "id": petid,
+                "id": args["id"],
                 "name": args["name"]
               }
             ],
@@ -109,7 +110,7 @@ class Pet(Resource):
             if (pet_id == str(pet["id"])):
                 return jsonify(pet), 200
 
-        return "Pet not found try id 1 through " + str(petid), 404
+        return "Pet not found", 404
 
     # endpoint to show all pets
     @app.route("/pet", methods=["GET"])
@@ -119,20 +120,30 @@ class Pet(Resource):
     # endpoint to update user
     @app.route("/pet/<pet_id>", methods=["PUT"])
     def update_pet(pet_id):
+
+        #give error if id is invalid
+        try:
+            int(pet_id)
+        except ValueError:
+            return "invalid id supplied", 400
+
         for pet in pets:
             if (pet_id == str(pet["id"])):
-                parser = reqparse.RequestParser()
-                parser.add_argument("name")
-                parser.add_argument("photoUrls")
-                parser.add_argument("status")
+                parser = RequestParser()
+                parser.add_argument("name", type=str, required=True)
+                parser.add_argument("photoUrls", required=True)
+                parser.add_argument("status", type=str, required=True)
                 args = parser.parse_args()
 
                 pet["name"]= args["name"]
                 pet["photoUrls"]= args["photoUrls"]
                 pet["status"]= args["status"]
+                pet["category"]["name"] = args["name"]
+                pet["tags"][0]["name"] = args["name"]
 
                 return jsonify(pet), 200
 
+        #id doesn't match
         return "pet not found", 404
 
     @app.route("/")
