@@ -81,7 +81,6 @@ class Pet(Resource):
                 return "invalid input", 405
 
         pet = {
-            "name": args["name"],
             "id": args["id"],
             "category": {
               "id": args["id"],
@@ -114,7 +113,7 @@ class Pet(Resource):
 
     # endpoint to show all pets
     @app.route("/pet", methods=["GET"])
-    def get_user():
+    def get_allPets():
         return jsonify(pets)
 
     # endpoint to update user
@@ -130,16 +129,21 @@ class Pet(Resource):
         for pet in pets:
             if (pet_id == str(pet["id"])):
                 parser = RequestParser()
-                parser.add_argument("name", type=str, required=True)
-                parser.add_argument("photoUrls", required=True)
-                parser.add_argument("status", type=str, required=True)
+                parser.add_argument("name", type=str)
+                parser.add_argument("photoUrls", type=str)
+                parser.add_argument("status", type=str)
                 args = parser.parse_args()
 
-                pet["name"]= args["name"]
-                pet["photoUrls"]= args["photoUrls"]
-                pet["status"]= args["status"]
-                pet["category"]["name"] = args["name"]
-                pet["tags"][0]["name"] = args["name"]
+                if args["name"] is not None:
+                    pet["name"]= args["name"]
+                    pet["category"]["name"] = args["name"]
+                    pet["tags"][0]["name"] = args["name"]
+
+                if args["photoUrls"] is not None:
+                    pet["photoUrls"]= args["photoUrls"]
+
+                if args["status"] is not None:
+                    pet["status"]= args["status"]
 
                 return jsonify(pet), 200
 
