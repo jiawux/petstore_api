@@ -19,17 +19,7 @@ class Pet(db.Model):
     photoUrls = db.Column(db.Text)
     status = db.Column(db.String(30))
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-
-    def __init__(self, id, name, photoUrls, status, category):
-        self.id = id
-        if name =="":
-            name = "pet" + str(id)
-        self.name = name
-        self.photoUrls = photoUrls
-        if status == "":
-            status = "available"
-        self.status = status
-        self.category_id = category.id
+    category = relationship(category)
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -53,6 +43,20 @@ Category("cat")
 Category("bunny")
 Category("")
 
+"""
+
+    def __init__(self, id, name, photoUrls, status):
+        self.id = id
+        if name =="":
+            name = "pet" + str(id)
+        self.name = name
+        self.photoUrls = photoUrls
+        if status == "":
+            status = "available"
+        self.status = status
+
+"""
+
 #----------------------------------------------------------------------------
 
 # endpoint to add a new pet
@@ -70,15 +74,16 @@ def add_pet():
         choices=["cat", "dog", "bunny"], required = False)
     args = parser.parse_args()
 
-    category = Category.query.filter_by(type_of_animal="")
+    print("here")
+    new_category = Category.query.filter_by(type_of_animal="dog")
     print(category)
 
     if args["category"] is not None:
-        category = Category.query.filter_by(type_of_animal=args["category"])
+        new_category = Category.query.filter_by(type_of_animal=args["category"])
         print(category)
 
-    new_pet = Pet(args["id"], args["name"], args["photoUrls"], args["status"],
-        category)
+    new_pet = Pet(id=args["id"], name=args["name"], photoUrls=args["photoUrls"],
+        status=args["status"], category=new_category)
 
     db.session.add(new_pet)
     db.session.commit()
@@ -102,9 +107,8 @@ def get(pet_id):
     return "Pet not found", 404
 
 
-# endpoint to show all pets
 @app.route("/pet/v2/<pet_id>", methods=["DELETE"])
-def delete_pets(pet_id):
+def delete_pet(pet_id):
 
     pet = Pet.query.get(pet_id)
     db.session.delete(pet)
