@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify
-from flask_restful import Resource
 from flask_restful.reqparse import RequestParser
+import json
 
 app = Flask(__name__)
 
-#fake pet data
+#fake pet data------------------------------------------------
 pets = [
     {
           "id": 1,
@@ -62,99 +62,109 @@ pets = [
         }
 ]
 
-#create pet model
-class Pet(Resource):
+#------------------------------------------------------------
 
-    # endpoint to add a new pet
-    @app.route("/pet", methods=["POST"])
-    def add_pet():
-        parser = RequestParser()
-        parser.add_argument("name", type=str, required=True)
-        parser.add_argument("id", type=int, required = True)
-        parser.add_argument("photoUrls", required=True)
-        parser.add_argument("status", type=str, required=True)
-        args = parser.parse_args()
+# endpoint to add a new pet
+@app.route("/pet/v1", methods=["POST"])
+def add_pet():
+    parser = RequestParser()
+    parser.add_argument("name", type=str, required=True)
+    parser.add_argument("id", type=int, required = True)
+    parser.add_argument("photoUrls", required=True)
+    parser.add_argument("status", type=str,
+        choices=["available", "pending", "sold"], required=True,
+        help="Invalid. Status is either available, pending, or sold.")
+    args = parser.parse_args()
 
-        #if id isn't unique
-        for pet in pets:
-            if (pet["id"] == args["id"]):
-                return "invalid input", 405
+    #if id isn't unique
+    for pet in pets:
+        if (pet["id"] == args["id"]):
+            return "invalid input", 405
 
-        pet = {
+    new_pet = {
+        "id": args["id"],
+        "category": {
+          "id": args["id"],
+          "name": args["name"]
+        },
+        "name": args["name"],
+        "photoUrls": [
+          args["photoUrls"]
+        ],
+        "tags": [
+          {
             "id": args["id"],
-            "category": {
-              "id": args["id"],
-              "name": args["name"]
-            },
-            "name": args["name"],
-            "photoUrls": [
-              args["photoUrls"]
-            ],
-            "tags": [
-              {
-                "id": args["id"],
-                "name": args["name"]
-              }
-            ],
-            "status": args["status"]
+            "name": args["name"]
           }
+        ],
+        "status": args["status"]
+      }
 
-        pets.append(pet)
-        return jsonify(pet), 201
+    pets.append(new_pet)
+    return jsonify(new_pet), 201
 
-    # endpoint to get user detail by id
-    @app.route("/pet/<pet_id>", methods=["GET"])
-    def get(pet_id):
-        for pet in pets:
-            if (pet_id == str(pet["id"])):
-                return jsonify(pet), 200
+# endpoint to get user detail by id
+@app.route("/pet/v1/<pet_id>", methods=["GET"])
+def get(pet_id):
 
-        return "Pet not found", 404
+    #give error if id is invalid
+    try:
+        int(pet_id)
+    except ValueError:
+        return "invalid id supplied", 400
 
-    # endpoint to show all pets
-    @app.route("/pet", methods=["GET"])
-    def get_allPets():
-        return jsonify(pets)
+    for pet in pets:
+        if (pet_id == str(pet["id"])):
+            return jsonify(pet), 200
 
-    # endpoint to update user
-    @app.route("/pet/<pet_id>", methods=["PUT"])
-    def update_pet(pet_id):
+    return "Pet not found", 404
 
-        #give error if id is invalid
-        try:
-            int(pet_id)
-        except ValueError:
-            return "invalid id supplied", 400
+# endpoint to show all pets
+@app.route("/pet/v1", methods=["GET"])
+def get_pets():
+    return jsonify(pets)
 
-        for pet in pets:
-            if (pet_id == str(pet["id"])):
-                parser = RequestParser()
-                parser.add_argument("name", type=str)
-                parser.add_argument("photoUrls", type=str)
-                parser.add_argument("status", type=str)
-                args = parser.parse_args()
+# endpoint to update user
+@app.route("/pet/v1/<pet_id>", methods=["PUT"])
+def update_pet(pet_id):
 
-                if args["name"] is not None:
-                    pet["name"]= args["name"]
-                    pet["category"]["name"] = args["name"]
-                    pet["tags"][0]["name"] = args["name"]
+    #give error if id is invalid
+    try:
+        int(pet_id)
+    except ValueError:
+        return "invalid id supplied", 400
 
-                if args["photoUrls"] is not None:
-                    pet["photoUrls"]= args["photoUrls"]
+    for pet in pets:
+        if (pet_id == str(pet["id"])):
+            parser = RequestParser()
+            parser.add_argument("name", type=str)
+            parser.add_argument("photoUrls", type=str)
+            parser.add_argument("status", type=str)
+            #parser.add_argument("category", type = json.loads)
+            args = parser.parse_args()
 
-                if args["status"] is not None:
-                    pet["status"]= args["status"]
+            if args["name"] is not None:
+                pet["name"]= args["name"]
+                pet["category"]["name"] = args["name"]
+                pet["tags"][0]["name"] = args["name"]
 
-                return jsonify(pet), 200
+            if args["photoUrls"] is not None:
+                pet["photoUrls"]= args["photoUrls"]
 
-        #id doesn't match
-        return "pet not found", 404
+            if args["status"] is not None:
+                pet["status"]= args["status"]
 
-    @app.route("/")
-    def hello():
-        return "Hello World"
+            #pet["category"].update(args["category"].my_dict)
 
-myPet = Pet()
+            return jsonify(pet), 200
+
+    #id doesn't match
+    return "pet not found", 404
+
+@app.route("/v1")
+def hello():
+    return "Welcome to the Pet Store."
+
 
 if __name__ == '__main__':
     app.run(debug=True)
