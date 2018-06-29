@@ -16,12 +16,6 @@ pets = [
           "photoUrls": [
             "string1"
           ],
-          "tags": [
-            {
-              "id": 1,
-              "name": "doggie"
-            }
-          ],
           "status": "available"
      },
      {
@@ -34,12 +28,6 @@ pets = [
           "photoUrls": [
             "string2"
           ],
-          "tags": [
-            {
-              "id": 2,
-              "name": "category"
-            }
-          ],
           "status": "available"
           },
       {
@@ -51,12 +39,6 @@ pets = [
           "name": "snake",
           "photoUrls": [
             "string3"
-          ],
-          "tags": [
-            {
-              "id": 3,
-              "name": "snake"
-            }
           ],
           "status": "available"
         }
@@ -90,12 +72,6 @@ def add_pet():
         "name": args["name"],
         "photoUrls": [
           args["photoUrls"]
-        ],
-        "tags": [
-          {
-            "id": args["id"],
-            "name": args["name"]
-          }
         ],
         "status": args["status"]
       }
@@ -146,7 +122,6 @@ def update_pet(pet_id):
             if args["name"] is not None:
                 pet["name"]= args["name"]
                 pet["category"]["name"] = args["name"]
-                pet["tags"][0]["name"] = args["name"]
 
             if args["photoUrls"] is not None:
                 pet["photoUrls"]= args["photoUrls"]
