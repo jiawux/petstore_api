@@ -14,43 +14,43 @@ ma = Marshmallow(app)
 #----------------------------------------------------------------------------
 #define the Model
 
+association_table = db.Table('association', db.metadata,
+    db.Column('category_id', db.Integer, db.ForeignKey('category.category_id')),
+    db.Column('pet_id', db.Integer, db.ForeignKey('pet.pet_id'))
+)
+
 class Category(db.Model):
     __tablename__ = 'category'
-    category_id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     category_name = db.Column(db.String(64), unique=True)
-    pets = db.relationship('Pet', backref='category')
+    pets = db.relationship('Pet', secondary=association_table, back_populates='categories')
 
-    def __init__(self, category_id, category_name):
-        self.category_id = category_id
+    def __init__(self, category_name):
         self.category_name = category_name
 
-    def __repr__(self):
-        return 'Category {}'.format(self.category_name)
-
 class Pet(db.Model):
-    __tablename__ = 'pets'
-    pet_id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'pet'
+    pet_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     pet_name = db.Column(db.String(64), nullable=False)
     photoUrls = db.Column(db.Text)
     status = db.Column(db.String(30))
     category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'))
+    categories = db.relationship('Category', secondary=association_table, back_populates='pets')
 
-    def __init__(self, pet_id, pet_name, photoUrls, status, category):
-         self.pet_id = pet_id
+    def __init__(self, pet_name, photoUrls, status):
          if pet_name =='':
-             pet_name = 'pet' + str(id)
+             pet_name = 'pet' + str(pet_id)
          self.pet_name = pet_name
          self.photoUrls = photoUrls
          if status == '':
              status = 'available'
          self.status = status
 
-
 #define structure of response of endpoints
 class PetSchema(ma.Schema):
     class Meta:
         # Fields to expose
-        fields = ('pet_id', 'pet_name', 'category_name', 'photoUrls', 'status')
+        fields = ('pet_id', 'pet_name', 'photoUrls', 'status')
 
 class CategorySchema(ma.Schema):
     class Meta:
@@ -71,11 +71,10 @@ category_names = []
 @app.route('/v2/category', methods=['POST'])
 def add_category():
     parser = RequestParser()
-    parser.add_argument('category_id', type=int, required=True)
     parser.add_argument('category_name', type=str, required=True)
     args = parser.parse_args()
 
-    new_category = Category(args['category_id'], args['category_name'])
+    new_category = Category( args['category_name'])
 
     db.session.add(new_category)
     db.session.commit()
@@ -95,20 +94,50 @@ def get_categories():
 @app.route('/v2/category/<category_name>', methods=['GET'])
 def get_category_by_name(category_name):
     category = Category.query.filter_by(category_name=category_name).first()
-    return jsonify(categories)
+
+    return jsonify(category_schema.dump(category).data)
 
 # endpoint to show all pets with specific category
-@app.route('/v2/pet/<category_name>', methods=['GET'])
-def get_all_pet_by_category(category_name):
-    pets = Pet.query.filter_by(category_name=category_name).all()
+@app.route('/v2/category.pets/<category_name>', methods=['GET'])
+def get_all_pets_by_category(category_name):
+    category = Category.query.filter_by(category_name=category_name).first()
+    pets = category.pets
+
     return jsonify(pets_schema.dump(pets).data)
 
+@app.route('/v2/category/<category_name>', methods=['DELETE'])
+def delete_category(category_name):
+
+    delete_category = Category.query.filter_by(category_name=category_name).first()
+    db.session.delete(delete_category)
+    db.session.commit()
+
+    return 'Deleted category ' + str(category_name), 200
+
+# endpoint to update user
+@app.route('/v2/category/<category_name>', methods=['PUT'])
+def update_category(category_name):
+
+    category = Category.query.filter_by(category_name=category_name).first()
+
+    parser = RequestParser()
+    parser.add_argument('category_name', type=str, required=False)
+    args = parser.parse_args()
+
+    if args['category_name'] is not None:
+        category.category_name = args['category_name']
+
+    updated_category = category_schema.dump(category).data
+    db.session.commit()
+
+    return jsonify(updated_category)
+
+#---------------------------------------------------------------------------
 # endpoint to add a new pet
 @app.route('/v2/pet', methods=['POST'])
 def add_pet():
     try:
         parser = RequestParser()
-        parser.add_argument('pet_id', type=int, required=True)
         parser.add_argument('pet_name', type=str, required=False)
         parser.add_argument('photoUrls', type=str, required=False)
         parser.add_argument('status', type=str,
@@ -122,16 +151,19 @@ def add_pet():
 
         print(pet_category.pets)
 
-        new_pet = Pet(args['pet_id'], args['pet_name'], args['photoUrls'], args['status'])
+        new_pet = Pet(args['pet_name'], args['photoUrls'], args['status'])
 
         pet_category.pets.append(new_pet)
 
         db.session.add(new_pet)
         db.session.commit()
 
+        print("category")
         print(pet_category.pets)
+        print("category_id")
+        print(new_pet.category_id)
 
-        return jsonify(pet_schema.dump(new_pet).data), 201
+        return jsonify(pet_schema.dump(new_pet).data), 200
 
     except IntegrityError as e:
          return 'invalid input', 405
@@ -139,12 +171,16 @@ def add_pet():
 
 # endpoint to get user detail by id
 @app.route('/v2/pet/<pet_id>', methods=['GET'])
-def get(pet_id):
+def get_pet_by_id(pet_id):
 
-    pet = pet_schema.dump(Pet.query.get(pet_id)).data
+    pet = Pet.query.get(pet_id)
+    pet_category = pet.categories
+    pet_data = pet_schema.dump(pet).data
+    pet_category_data = categories_schema.dump(pet_category).data
+    data = [pet_data, pet_category_data]
 
-    if len(pet.keys()) > 0:
-        return jsonify(pet), 200
+    if len(pet_data.keys()) > 0:
+        return jsonify(data), 200
 
     return 'Pet not found', 404
 
@@ -152,8 +188,8 @@ def get(pet_id):
 @app.route('/v2/pet', methods=['GET'])
 def get_pets():
     pets = pets_schema.dump(Pet.query.all()).data
-    print(pets)
     return jsonify(pets)
+
 
 @app.route('/v2/pet/<pet_id>', methods=['DELETE'])
 def delete_pet(pet_id):
@@ -180,11 +216,13 @@ def update_pet(pet_id):
 
     if len(pet_data.keys()) > 0:
         parser = RequestParser()
-        parser.add_argument('pet_name', type=str)
-        parser.add_argument('photoUrls', type=str)
+        parser.add_argument('pet_name', type=str, required=False)
+        parser.add_argument('photoUrls', type=str, required=False)
         parser.add_argument('status', type=str,
-            choices=['available', 'pending', 'sold'],
+            choices=['available', 'pending', 'sold'], required=False,
             help='Invalid. Status is either available, pending, or sold.')
+        parser.add_argument('type of category change', type=str, required=False,
+            choices=['delete', 'add'])
         parser.add_argument('category', type=str, choices=category_names,
             required=False)
         args = parser.parse_args()
@@ -192,8 +230,15 @@ def update_pet(pet_id):
         if args['pet_name'] is not None:
             pet.pet_name = args['pet_name']
 
-        if args['category'] is not None:
-            pet.category_name = args['category']
+        if (args['type of category change'] is not None):
+            if (args['category'] is not None):
+
+                category = Category.query.filter_by(category_name=args['category']).first()
+
+                if (args['type of category change'] == 'add'):
+                    category.pets.append(pet)
+                else:
+                    category.pets.remove(pet)
 
         if args['photoUrls'] is not None:
             pet.photoUrls = args['photoUrls']
@@ -201,15 +246,15 @@ def update_pet(pet_id):
         if args['status'] is not None:
             pet.status = args['status']
 
-        updated_pet = pet_schema.dump(pet).data
         db.session.commit()
 
-        return jsonify(updated_pet), 200
+        return get_pet_by_id(pet_id)
 
     #id doesn't match
     return 'pet not found', 404
 
 
 if __name__ == '__main__':
+    #db.drop_all()
     db.create_all()
     app.run(debug=True)
