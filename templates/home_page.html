@@ -77,11 +77,13 @@
       </table>
 
       <h3> Get all pets from category </h3>
-      <select name="form" onchange="location = this.value;">
+
+      <select name="category_list" onchange="location = this.value">
         {% for category in categories %}
-         <option value="{{ url_for('get_all_pets_by_category',category_name=category.category_name) }}">
+           <option value="{{ url_for('get_all_pets_by_category',category_name=category.category_name) }}">
            {{category.category_name}}</option>
         {% endfor %}
+          <option value="none" selected>--Please Choose an option--
       </select>
 
    </body>

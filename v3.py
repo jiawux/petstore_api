@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, flash, url_for, redirect, render_temp
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_restful.reqparse import RequestParser
+from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 import os
 
@@ -13,7 +14,11 @@ ma = Marshmallow(app)
 
 #----------------------------------------------------------------------------
 #define the Model
-
+"""
+@event.listens_for(db.Table, "column_reflect")
+def reflect_col(inspector, table, column_info):
+    column_info['key'] = column_info['name'].replace(' ', '_')
+"""
 association_table = db.Table('association', db.metadata,
     db.Column('category_id', db.Integer, db.ForeignKey('category.category_id')),
     db.Column('pet_id', db.Integer, db.ForeignKey('pet.pet_id'))
@@ -22,7 +27,7 @@ association_table = db.Table('association', db.metadata,
 class Category(db.Model):
     __tablename__ = 'category'
     category_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    category_name = db.Column(db.String(64), unique=True)
+    category_name = db.Column(db.String(150), nullable=False, unique=True)
     pets = db.relationship('Pet', secondary=association_table, back_populates='categories')
 
     def __init__(self, category_name):
@@ -75,7 +80,7 @@ def add_category():
         category_name=request.form.get('category_name')
 
         try:
-            if category_name is not None:
+            if category_name!="":
                 new_category = Category(category_name)
 
                 db.session.add(new_category)
@@ -210,6 +215,10 @@ def update_pet(pet_id):
         delta = request.form.get('type of category change')
         category_name = request.form.get('category')
 
+        cat = Category.query.get(5)
+        print(cat)
+        print(cat.category_name)
+
         if pet_name != "":
             pet.pet_name = pet_name
 
@@ -219,7 +228,11 @@ def update_pet(pet_id):
         if status != pet.status:
             pet.status = status
 
+        print(category_name)
         new_category = Category.query.filter_by(category_name=category_name).first()
+        print(new_category)
+        print(Category.query.filter_by(category_name="puppers?").first())
+        print(new_category.pets)
         if delta == 'add':
             new_category.pets.append(pet)
         elif delta == 'delete':
