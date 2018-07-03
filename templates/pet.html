@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang = "en">
+   <body>
+
+      <h3>Pets</h3>
+      <hr/>
+
+      <form action = "{{ request.path }}" method=post>
+         <label for = "pet_name">Name</label><br>
+         <input type = "text" name = "pet_name" placeholder = "Name" /><br><!-- value="{{request.form.pet_name}}"/><br>-->
+         <label for = "photoUrls">photoUrls</label><br>
+         <input type = "text" name = "photoUrls" placeholder = "photoUrls" /><br>
+         <label for = "status">addr</label><br>
+         <input type = "text" name = "status" placeholder = "available" /><br>
+         <label for = "category">Category</label><br>
+         <input type = "text" name = "category" placeholder = "category" /><br>
+         <br>
+         <input type = "submit" value = "Submit" />
+      </form>
+
+   </body>
+</html>

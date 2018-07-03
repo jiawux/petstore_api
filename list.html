@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+   <body>
+
+      <table border = 1>
+         <thead>
+            <td>Name</td>
+            <td>PhotoUrls</td>
+            <td>Status</td>
+            <td>Category</td>
+         </thead>
+
+         {% for row in rows %}
+            <tr>
+               <td>{{row["pet_name"]}}</td>
+               <td>{{row["photoUrls"]}}</td>
+               <td> {{ row["status"]}}</td>
+               <td>{{row["categories"]}}</td>
+            </tr>
+         {% endfor %}
+      </table>
+
+      <table border = 1>
+        <thead>
+          <td>Name</td>
+          <td>Category</td>
+        </thread>
+
+        {% for row in rows%}
+            <tr>
+              <td>{{row["category_name"]}}</td>
+              <td>{{row["pets"]}}</td>
+            </tr>
+        {% endfor %}
+      </table>
+
+      <a href = "/">Go back to home page</a>
+
+   </body>
+</html>

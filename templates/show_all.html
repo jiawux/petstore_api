@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang = "en">
+   <head><h1>Pet Store</head></head>
+   <body>
+
+      <h3>
+         <a href = "{{ url_for('show_all') }}">Home Page</a>
+      </h3>
+
+      <hr/>
+      {%- for message in get_flashed_messages() %}
+         {{ message }}
+      {%- endfor %}
+
+      <h3>Pets (<a href = "{{ url_for('add_pet') }}">Add Pet</a>)</h3>
+
+      <table cellspacing="10">
+         <thead>
+            <tr>
+               <th>Id</th>
+               <th>Name</th>
+               <th>PhotoUrls</th>
+               <th>Status</th>
+               <th>Category</th>
+            </tr>
+         </thead>
+
+         <tbody>
+            {% for pet in pets %}
+               <tr>
+                  <td>{{ pet.pet_id }}</td>
+                  <td>{{ pet.pet_name }}</td>
+                  <td>{{ pet.photoUrls }}</td>
+                  <td>{{ pet.status }}</td>
+                  <td>{{ pet.categories }}</td>
+                  <td> <a href =
+                    "{{ url_for('update_pet',pet_id=pet.pet_id) }}">Update Pet
+                        </a> </td>
+                  <td> <a href =
+                    "{{ url_for('delete_pet',pet_id=pet.pet_id) }}">Delete Pet
+                        </a> </td>
+               </tr>
+            {% endfor %}
+         </tbody>
+      </table>
+
+    </hr>
+      <hr/>
+
+
+      <h3>Category (<a href = "{{ url_for('add_category') }}">Add Category</a>)</h3>
+
+      <table cellspacing="10">
+         <thead>
+            <tr>
+               <th>Id</th>
+               <th>Category</th>
+               <th>Pets</th>
+            </tr>
+         </thead>
+
+         <tbody>
+            {% for category in categories %}
+               <tr>
+                  <td>{{ category.category_id }}</td>
+                  <td>{{ category.category_name }}</td>
+                  <td>{{ category.pets }}</td>
+                  <td> <a href =
+                    "{{ url_for('update_category',category_name=category.category_name) }}">Update Category
+                        </a> </td>
+                  <td> <a href =
+                    "{{ url_for('delete_category',category_name=category.category_name) }}">Delete Category
+                        </a> </td>
+               </tr>
+            {% endfor %}
+         </tbody>
+      </table>
+
+      <h3> Get all pets from category </h3>
+      <select name="form" onchange="location = this.value;">
+        {% for category in categories %}
+         <option value="{{ url_for('get_all_pets_by_category',category_name=category.category_name) }}">
+           {{category.category_name}}</option>
+        {% endfor %}
+      </select>
+
+   </body>
+</html>

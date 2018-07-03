@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, flash, url_for, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_restful.reqparse import RequestParser
@@ -28,6 +28,9 @@ class Category(db.Model):
     def __init__(self, category_name):
         self.category_name = category_name
 
+    def __repr__(self):
+        return "Category {}".format(self.category_name)
+
 class Pet(db.Model):
     __tablename__ = 'pet'
     pet_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -45,6 +48,9 @@ class Pet(db.Model):
          if status == '':
              status = 'available'
          self.status = status
+
+    def __repr__(self):
+        return "Pet {}".format(self.pet_id)
 
 #define structure of response of endpoints
 class PetSchema(ma.Schema):
@@ -68,7 +74,7 @@ category_names = []
 
 #----------------------------------------------------------------------------
 
-@app.route('/v2/category', methods=['POST'])
+@app.route('/category', methods=['POST'])
 def add_category():
     parser = RequestParser()
     parser.add_argument('category_name', type=str, required=True)
@@ -85,27 +91,27 @@ def add_category():
     return jsonify(category_schema.dump(new_category).data), 200
 
 # endpoint to show all categories
-@app.route('/v2/category', methods=['GET'])
+@app.route('/category', methods=['GET'])
 def get_categories():
     categories = categories_schema.dump(Category.query.all()).data
     return jsonify(categories)
 
 # endpoint to show category
-@app.route('/v2/category/<category_name>', methods=['GET'])
+@app.route('/category/<category_name>', methods=['GET'])
 def get_category_by_name(category_name):
     category = Category.query.filter_by(category_name=category_name).first()
 
     return jsonify(category_schema.dump(category).data)
 
 # endpoint to show all pets with specific category
-@app.route('/v2/category.pets/<category_name>', methods=['GET'])
+@app.route('/category.pets/<category_name>', methods=['GET'])
 def get_all_pets_by_category(category_name):
     category = Category.query.filter_by(category_name=category_name).first()
     pets = category.pets
 
     return jsonify(pets_schema.dump(pets).data)
 
-@app.route('/v2/category/<category_name>', methods=['DELETE'])
+@app.route('/category/<category_name>', methods=['DELETE'])
 def delete_category(category_name):
 
     delete_category = Category.query.filter_by(category_name=category_name).first()
@@ -115,7 +121,7 @@ def delete_category(category_name):
     return 'Deleted category ' + str(category_name), 200
 
 # endpoint to update user
-@app.route('/v2/category/<category_name>', methods=['PUT'])
+@app.route('/category/<category_name>', methods=['PUT'])
 def update_category(category_name):
 
     category = Category.query.filter_by(category_name=category_name).first()
@@ -134,9 +140,40 @@ def update_category(category_name):
 
 #---------------------------------------------------------------------------
 # endpoint to add a new pet
-@app.route('/v2/pet', methods=['POST'])
+@app.route('/pet', methods=['GET','POST'])
 def add_pet():
-    try:
+    if request.method == "GET":
+        return render_template("pet.html")
+    if request.method == "POST":
+        print("here ?")
+        pet_name = request.form['pet_name']
+        photoUrls = request.form['photoUrls']
+        status = request.form['status']
+        category = request.form['category']
+
+        pet_category = Category.query.filter_by(category_name=category).first()
+        pet_category_data = category_schema.dump(pet_category).data
+
+        try:
+            new_pet = Pet(pet_name, photoUrls, status)
+
+            if (pet_category_data.keys() > 0):
+                pet_category.pets.append(new_pet)
+
+            db.session.add(new_pet)
+            db.session.commit()
+
+            return redirect(url_for('show_all'))
+            return render_template("show_all.html", pets = Pet.query.all(),
+             categories = Category.query.all())
+        except Exception as e:
+             return render_template("pet.html", error = "invalid input, try again.")
+
+    return render_template("show_all.html", pets = Pet.query.all(),
+     categories = Category.query.all())
+
+
+"""
         parser = RequestParser()
         parser.add_argument('pet_name', type=str, required=False)
         parser.add_argument('photoUrls', type=str, required=False)
@@ -146,31 +183,9 @@ def add_pet():
         parser.add_argument('category', type=str, choices=category_names,
             required=True)
         args = parser.parse_args()
-
-        pet_category = Category.query.filter_by(category_name=args['category']).first()
-
-        print(pet_category.pets)
-
-        new_pet = Pet(args['pet_name'], args['photoUrls'], args['status'])
-
-        pet_category.pets.append(new_pet)
-
-        db.session.add(new_pet)
-        db.session.commit()
-
-        print("category")
-        print(pet_category.pets)
-        print("category_id")
-        print(new_pet.category_id)
-
-        return jsonify(pet_schema.dump(new_pet).data), 200
-
-    except IntegrityError as e:
-         return 'invalid input', 405
-
-
+"""
 # endpoint to get user detail by id
-@app.route('/v2/pet/<pet_id>', methods=['GET'])
+@app.route('/pet/<int:pet_id>', methods=['GET'])
 def get_pet_by_id(pet_id):
 
     pet = Pet.query.get(pet_id)
@@ -185,13 +200,13 @@ def get_pet_by_id(pet_id):
     return 'Pet not found', 404
 
 # endpoint to show all pets
-@app.route('/v2/pet', methods=['GET'])
+@app.route('/pet', methods=['GET'])
 def get_pets():
     pets = pets_schema.dump(Pet.query.all()).data
     return jsonify(pets)
 
 
-@app.route('/v2/pet/<pet_id>', methods=['DELETE'])
+@app.route('/pet/<int:pet_id>', methods=['DELETE'])
 def delete_pet(pet_id):
 
     pet = Pet.query.get(pet_id)
@@ -202,7 +217,7 @@ def delete_pet(pet_id):
 
 
 # endpoint to update user
-@app.route('/v2/pet/<pet_id>', methods=['PUT'])
+@app.route('/pet/<int:pet_id>', methods=['PUT'])
 def update_pet(pet_id):
 
     #give error if id is invalid
@@ -253,6 +268,10 @@ def update_pet(pet_id):
     #id doesn't match
     return 'pet not found', 404
 
+@app.route('/')
+def show_all():
+   return render_template('show_all.html', pets = Pet.query.all(),
+    categories = Category.query.all())
 
 if __name__ == '__main__':
     #db.drop_all()
