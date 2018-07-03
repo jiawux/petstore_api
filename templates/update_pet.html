@@ -8,7 +8,7 @@
          <a href = "{{ url_for('home_page') }}">Home Page</a>
       </h3>
 
-       {% if error %}
+      {% if error %}
          <p class=error><strong>Error:</strong> {{ error }}
        {% endif %}
 
@@ -23,6 +23,12 @@
            <option value="pending">pending</option>
            <option value="sold">sold</option>
          </select> <br>
+         Change Category? <br>
+         <select name="type of category change">
+           <option value="add">add</option>
+           <option value="delete">delete</option>
+           <option value="no change">no change</option>
+         </select><br>
          Category<br>
          <select name="category">
            {% for category in categories %}

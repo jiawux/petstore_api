@@ -1,48 +1,48 @@
 <!DOCTYPE html>
 <html lang = "en">
-   <head><h1>Pet Store</head></head>
+   <head><h1>Pet Store</h1></head>
    <body>
 
       <h3>
-         <a href = "{{ url_for('show_all') }}">Home Page</a>
+         <a href = "{{ url_for('home_page') }}">Home Page</a>
       </h3>
 
       <hr/>
-      {%- for message in get_flashed_messages() %}
-         {{ message }}
-      {%- endfor %}
+        {% if error %}
+          <p class=error><strong>Error:</strong> {{ error }}
+        {% endif %}
 
-      <h3>Pets (<a href = "{{ url_for('add_pet') }}">Add Pet</a>)</h3>
+        <h3>Pets (<a href = "{{ url_for('pet') }}">Add Pet</a>)</h3>
 
-      <table cellspacing="10">
-         <thead>
-            <tr>
-               <th>Id</th>
-               <th>Name</th>
-               <th>PhotoUrls</th>
-               <th>Status</th>
-               <th>Category</th>
-            </tr>
-         </thead>
+        <table cellspacing="10">
+           <thead>
+              <tr>
+                 <th>Id</th>
+                 <th>Name</th>
+                 <th>PhotoUrls</th>
+                 <th>Status</th>
+                 <th>Category</th>
+              </tr>
+           </thead>
 
-         <tbody>
-            {% for pet in pets %}
-               <tr>
-                  <td>{{ pet.pet_id }}</td>
-                  <td>{{ pet.pet_name }}</td>
-                  <td>{{ pet.photoUrls }}</td>
-                  <td>{{ pet.status }}</td>
-                  <td>{{ pet.categories }}</td>
-                  <td> <a href =
-                    "{{ url_for('update_pet',pet_id=pet.pet_id) }}">Update Pet
-                        </a> </td>
-                  <td> <a href =
-                    "{{ url_for('delete_pet',pet_id=pet.pet_id) }}">Delete Pet
-                        </a> </td>
-               </tr>
-            {% endfor %}
-         </tbody>
-      </table>
+           <tbody>
+              {% for pet in pets %}
+                 <tr>
+                    <td>{{ pet.pet_id }}</td>
+                    <td>{{ pet.pet_name }}</td>
+                    <td>{{ pet.photoUrls }}</td>
+                    <td>{{ pet.status }}</td>
+                    <td>{{ pet.categories }}</td>
+                    <td> <a href =
+                      "{{ url_for('update_pet',pet_id=pet.pet_id) }}">Update Pet
+                          </a> </td>
+                    <td> <a href =
+                      "{{ url_for('delete_pet',pet_id=pet.pet_id) }}">Delete Pet
+                          </a> </td>
+                 </tr>
+              {% endfor %}
+           </tbody>
+        </table>
 
     </hr>
       <hr/>

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, flash, url_for, redirect, render_template
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_restful.reqparse import RequestParser
@@ -7,7 +7,7 @@ import os
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'pets.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'pet.db')
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
@@ -41,16 +41,12 @@ class Pet(db.Model):
     categories = db.relationship('Category', secondary=association_table, back_populates='pets')
 
     def __init__(self, pet_name, photoUrls, status):
-         if pet_name =='':
-             pet_name = 'pet' + str(pet_id)
          self.pet_name = pet_name
          self.photoUrls = photoUrls
-         if status == '':
-             status = 'available'
          self.status = status
 
     def __repr__(self):
-        return "Pet {}".format(self.pet_id)
+        return "Pet {}".format(self.pet_name)
 
 #define structure of response of endpoints
 class PetSchema(ma.Schema):
@@ -118,6 +114,9 @@ def delete_category(category_name):
     db.session.delete(delete_category)
     db.session.commit()
 
+    global category_names
+    category_names.remove(category_name)
+
     return 'Deleted category ' + str(category_name), 200
 
 # endpoint to update user
@@ -140,50 +139,32 @@ def update_category(category_name):
 
 #---------------------------------------------------------------------------
 # endpoint to add a new pet
-@app.route('/pet', methods=['GET','POST'])
+@app.route('/pet', methods=['POST'])
 def add_pet():
-    if request.method == "GET":
-        return render_template("pet.html")
-    if request.method == "POST":
-        print("here ?")
-        pet_name = request.form['pet_name']
-        photoUrls = request.form['photoUrls']
-        status = request.form['status']
-        category = request.form['category']
-
-        pet_category = Category.query.filter_by(category_name=category).first()
-        pet_category_data = category_schema.dump(pet_category).data
-
-        try:
-            new_pet = Pet(pet_name, photoUrls, status)
-
-            if (pet_category_data.keys() > 0):
-                pet_category.pets.append(new_pet)
-
-            db.session.add(new_pet)
-            db.session.commit()
-
-            return redirect(url_for('show_all'))
-            return render_template("show_all.html", pets = Pet.query.all(),
-             categories = Category.query.all())
-        except Exception as e:
-             return render_template("pet.html", error = "invalid input, try again.")
-
-    return render_template("show_all.html", pets = Pet.query.all(),
-     categories = Category.query.all())
-
-
-"""
-        parser = RequestParser()
-        parser.add_argument('pet_name', type=str, required=False)
-        parser.add_argument('photoUrls', type=str, required=False)
-        parser.add_argument('status', type=str,
+    try:
+         parser = RequestParser()
+         parser.add_argument('pet_name', type=str, required=False)
+         parser.add_argument('photoUrls', type=str, required=False)
+         parser.add_argument('status', type=str,
             choices=['available', 'pending', 'sold'], required=True,
-            help='Invalid. Status is either available, pending, or sold.')
-        parser.add_argument('category', type=str, choices=category_names,
-            required=True)
-        args = parser.parse_args()
-"""
+             help='Invalid. Status is either available, pending, or sold.')
+         parser.add_argument('category', type=str, choices=category_names,
+             required=True)
+         args = parser.parse_args()
+
+         pet_category = Category.query.filter_by(category_name=args['category']).first()
+         new_pet = Pet(args['pet_name'], args['photoUrls'], args['status'])
+         pet_category.pets.append(new_pet)
+
+         db.session.add(new_pet)
+         db.session.commit()
+
+         return jsonify(pet_schema.dump(new_pet).data), 200
+
+    except IntegrityError as e:
+          return 'invalid input', 405
+
+
 # endpoint to get user detail by id
 @app.route('/pet/<int:pet_id>', methods=['GET'])
 def get_pet_by_id(pet_id):
@@ -268,12 +249,7 @@ def update_pet(pet_id):
     #id doesn't match
     return 'pet not found', 404
 
-@app.route('/')
-def show_all():
-   return render_template('show_all.html', pets = Pet.query.all(),
-    categories = Category.query.all())
 
 if __name__ == '__main__':
-    #db.drop_all()
     db.create_all()
     app.run(debug=True)

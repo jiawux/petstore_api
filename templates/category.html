@@ -1,11 +1,21 @@
 <html>
    <body>
 
-      <form action = "{{ url_for('category') }}" method = ["POST"]>
-         <h3>Category Information</h3>
-         Category Type<br>
-         <input type = "text" name = "Category Type" /></br>
+     <h1>Categories</h1>
+     <h3>
+        <a href = "{{ url_for('home_page') }}">Home Page</a>
+     </h3>
+
+     {% if error %}
+        <p class=error><strong>Error:</strong> {{ error }}
+      {% endif %}
+
+      <form action="{{ request.path }}" method="post">
+         <label for="category_name">Category</label><br>
+         <input type = "text" name = "category_name" /></br>
          <br>
          <input type = "submit" value = "Submit" />
+      </form>
+      
    </body>
 </html>
