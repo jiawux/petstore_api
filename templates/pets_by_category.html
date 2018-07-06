@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang = "en">
+   <head><h1>Pets in category {{category_name}}</h1></head>
+   <body>
+
+      <h3>
+         <a href = "{{ url_for('home_page') }}">Home Page</a>
+      </h3>
+
+      <hr/>
+        {% if error %}
+          <p class=error><strong>Error:</strong> {{ error }}
+        {% endif %}
+
+        <table cellspacing="10">
+           <thead>
+              <tr>
+                 <th>Id</th>
+                 <th>Name</th>
+                 <th>PhotoUrls</th>
+                 <th>Status</th>
+                 <th>Category</th>
+              </tr>
+           </thead>
+
+           <tbody>
+              {% for pet in pets %}
+                 <tr>
+                    <td>{{ pet.pet_id }}</td>
+                    <td>{{ pet.pet_name }}</td>
+                    <td>{{ pet.photoUrls }}</td>
+                    <td>{{ pet.status }}</td>
+                    <td>{{ pet.categories }}</td>
+                 </tr>
+              {% endfor %}
+           </tbody>
+        </table>
+
+   </body>
+</html>

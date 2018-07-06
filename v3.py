@@ -86,6 +86,9 @@ def add_category():
                 db.session.add(new_category)
                 db.session.commit()
 
+                print(new_category)
+                print(Category.query.filter_by(category_name=category_name).first())
+
                 return redirect(url_for('home_page', pets = Pet.query.all(),
                     categories = Category.query.all()))
             else:
@@ -138,15 +141,21 @@ def update_category(category_name):
              return render_template('category.html', categories = Category.query.all(),
                 error = "Entries must be unique. Try again.")
 
+    print(category_name)
     return render_template('category.html', categories = Category.query.all())
 
 # endpoint to show all pets with specific category
 @app.route('/category.pets/<category_name>', methods=['GET'])
 def get_all_pets_by_category(category_name):
+    error=None
     category = Category.query.filter_by(category_name=category_name).first()
     pets = category.pets
 
-    return jsonify(pets_schema.dump(pets).data)
+    if pets ==[]:
+        error = "This category does not contain any pets."
+
+    return render_template('pets_by_category.html', category_name=category_name,
+        pets = pets, error=error )
 
 #---------------------------------------------------------------------------
 # endpoint to add a new pet
@@ -213,11 +222,7 @@ def update_pet(pet_id):
         photoUrls = request.form.get('photoUrls')
         status = request.form.get('status')
         delta = request.form.get('type of category change')
-        category_name = request.form.get('category')
-
-        cat = Category.query.get(5)
-        print(cat)
-        print(cat.category_name)
+        category_id = request.form.get('category')
 
         if pet_name != "":
             pet.pet_name = pet_name
@@ -228,11 +233,8 @@ def update_pet(pet_id):
         if status != pet.status:
             pet.status = status
 
-        print(category_name)
-        new_category = Category.query.filter_by(category_name=category_name).first()
-        print(new_category)
-        print(Category.query.filter_by(category_name="puppers?").first())
-        print(new_category.pets)
+        new_category = Category.query.get(category_id)
+
         if delta == 'add':
             new_category.pets.append(pet)
         elif delta == 'delete':
@@ -248,8 +250,9 @@ def update_pet(pet_id):
 
 @app.route('/')
 def home_page():
-   return render_template('home_page.html', pets = Pet.query.all(),
-    categories = Category.query.all())
+#   return render_template('home_page.html', pets = Pet.query.all(),
+#    categories = Category.query.all())
+    return render_template('sequence_diagram.html')
 
 if __name__ == '__main__':
     db.create_all()
